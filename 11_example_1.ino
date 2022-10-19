@@ -10,13 +10,13 @@
 #define SND_VEL 346.0     // sound velocity at 24 celsius degree (unit: m/sec)
 #define INTERVAL 25      // sampling interval (unit: msec)
 #define PULSE_DURATION 10 // ultra-sound Pulse Duration (unit: usec)
-#define _DIST_MIN 180.0   // minimum distance to be measured (unit: mm)
-#define _DIST_MAX 360.0   // maximum distance to be measured (unit: mm)
+#define _DIST_MIN 100.0   // minimum distance to be measured (unit: mm)
+#define _DIST_MAX 400.0   // maximum distance to be measured (unit: mm)
 
 #define TIMEOUT ((INTERVAL / 2) * 1000.0) // maximum echo waiting time (unit: usec)
 #define SCALE (0.001 * 0.5 * SND_VEL) // coefficent to convert duration to distance
 
-#define _EMA_ALPHA 0.4    // EMA weight of new sample (range: 0 to 1)
+#define _EMA_ALPHA 0.5    // EMA weight of new sample (range: 0 to 1)
                           // Setting EMA to 1 effectively disables EMA filter.
 
 // Target Distance
@@ -26,14 +26,15 @@
 // duty duration for myservo.writeMicroseconds()
 // NEEDS TUNING (servo by servo)
  
-#define _DUTY_MIN 550 // servo full clockwise position (0 degree)
+#define _DUTY_MIN 535 // servo full clockwise position (0 degree)
 #define _DUTY_NEU 1480 // servo neutral position (90 degree)
-#define _DUTY_MAX 2560 // servo full counterclockwise position (180 degree)
+#define _DUTY_MAX 2425 // servo full counterclockwise position (180 degree)
 
 // global variables
 float  dist_ema, dist_prev = _DIST_MAX; // unit: mm
 unsigned long last_sampling_time; // unit: ms
 int val;
+
 
 Servo myservo;
 
@@ -54,8 +55,9 @@ void setup() {
   Serial.begin(57600);
 }
 
-void loop() { 
+void loop() {
   float  dist_raw;
+  
   // wait until next sampling time. 
   if (millis() < (last_sampling_time + INTERVAL))
     return;
@@ -74,43 +76,31 @@ void loop() {
   }
 
   // Apply ema filter here  
-dist_ema =(_EMA_ALPHA*dist_raw)+(1-_EMA_ALPHA)*dist_ema;
-
+  dist_ema = (_EMA_ALPHA*dist_raw) + ((1-_EMA_ALPHA)*dist_ema);
 
   // adjust servo position according to the USS read value
 
   // add your code here!
-  
-  val=map(dist_raw, 180,360,0,180);
-  if(dist_raw<_TARGET_LOW ){
-    myservo.writeMicroseconds(_DUTY_MIN);
-  }
-  else if(_TARGET_LOW<dist_raw &&dist_raw<_TARGET_HIGH){
-      myservo.write(val);
-  }
-  else {
-    myservo.writeMicroseconds(_DUTY_MAX);
-  }  
-
-
-
-    
   // Use _TARGET_LOW, _TARGTE_HIGH
+  val = map(dist_raw, 180, 360, 0, 180);
+  
+
+  if (dist_raw <= _TARGET_LOW) {
+    myservo.write(0);
+  } else if (dist_raw > _TARGET_LOW & dist_raw < _TARGET_HIGH) {
+        myservo.write(val);
+  } else {
+    myservo.write(180);
+  }
+
 
   // output the distance to the serial port
-  Serial.print("Min:"); Serial.print(_DIST_MIN);
-  Serial.print(",dist:"); Serial.print(dist_raw);
-  Serial.print(",ema:"); Serial.print(dist_ema);
-  Serial.print(",Servo:"); Serial.print(myservo.read());
-  Serial.print(",Max:"); Serial.print(_DIST_MAX);
+  Serial.print("Min:");    Serial.print(_DIST_MIN);
+  Serial.print(",dist:");  Serial.print(dist_raw);
+  Serial.print(",ema:");   Serial.print(dist_ema);
+  Serial.print(",Servo:"); Serial.print(myservo.read());  
+  Serial.print(",Max:");   Serial.print(_DIST_MAX);
   Serial.println("");
-  //Serial.print("Min:");    Serial.print(_DIST_MIN);
-  //Serial.print(",Low:");   Serial.print(_TARGET_LOW);
-  //Serial.print(",dist:");  Serial.print(dist_raw);
-  //Serial.print(",Servo:"); Serial.print(myservo.read());  
-  //Serial.print(",High:");  Serial.print(_TARGET_HIGH);
-  //Serial.print(",Max:");   Serial.print(_DIST_MAX);
-  //Serial.println("");
  
   // update last sampling time
   last_sampling_time += INTERVAL;
