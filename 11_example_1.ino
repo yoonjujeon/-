@@ -33,6 +33,7 @@
 // global variables
 float  dist_ema, dist_prev = _DIST_MAX; // unit: mm
 unsigned long last_sampling_time; // unit: ms
+int val;
 
 Servo myservo;
 
@@ -55,7 +56,6 @@ void setup() {
 
 void loop() { 
   float  dist_raw;
-  int val0 = map(dist_raw, 180, 360, 0,180 );
   // wait until next sampling time. 
   if (millis() < (last_sampling_time + INTERVAL))
     return;
@@ -76,14 +76,17 @@ void loop() {
   // Apply ema filter here  
 dist_ema =(_EMA_ALPHA*dist_raw)+(1-_EMA_ALPHA)*dist_ema;
 
+
   // adjust servo position according to the USS read value
 
   // add your code here!
+  
+  val=map(dist_raw, 180,360,0,180);
   if(dist_raw<_TARGET_LOW ){
     myservo.writeMicroseconds(_DUTY_MIN);
   }
   else if(_TARGET_LOW<dist_raw &&dist_raw<_TARGET_HIGH){
-      myservo.write(val0);
+      myservo.write(val);
   }
   else {
     myservo.writeMicroseconds(_DUTY_MAX);
